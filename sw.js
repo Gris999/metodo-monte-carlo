@@ -1,6 +1,6 @@
 /* Service worker: guarda la interfaz para usarla sin conexión.
    Las llamadas a /api/ van siempre a la red; si fallan, la app usa motor.js. */
-const VERSION = "mc-v2";
+const VERSION = "mc-v3";
 const ARCHIVOS = ["./", "index.html", "styles.css", "charts.js", "motor.js", "app.js",
   "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 

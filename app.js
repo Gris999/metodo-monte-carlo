@@ -18,7 +18,9 @@
   }
 
   class ErrorEntrada extends Error {}
+  let sinServidor = false;  // en un hosting estático (GitHub Pages) no hay API: se detecta una vez
   async function api(url, body) {
+    if (sinServidor) throw new TypeError("sin-conexion");
     let r;
     try {
       r = await fetch(url, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
@@ -26,7 +28,7 @@
       throw new TypeError("sin-conexion");
     }
     const esJson = (r.headers.get("content-type") || "").includes("json");
-    if (!esJson) throw new TypeError("sin-conexion");  // sitio estático: no hay API
+    if (!esJson) { sinServidor = true; throw new TypeError("sin-conexion"); }  // sitio estático: no hay API
     const data = await r.json().catch(() => ({}));
     if (!r.ok) {
       const d = data.detail;
