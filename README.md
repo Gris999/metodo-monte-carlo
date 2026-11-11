@@ -10,6 +10,6 @@ y experimentos repetidos.
 Funciona en computadora y teléfono, y se puede instalar como aplicación web progresiva (PWA).
 
 En esta versión publicada los cálculos se hacen en el navegador con un motor en JavaScript
-(generador pseudoaleatorio mulberry32). Los resultados de la monografía se obtuvieron con el
-núcleo en Python (NumPy, PCG64), que se ejecuta localmente con `python servidor.py`; por eso
-los números pueden diferir levemente para una misma semilla.
+que reproduce el generador de NumPy (`default_rng`: SeedSequence + PCG64). Con la misma
+semilla da los mismos números que el núcleo en Python con el que se obtuvieron los resultados
+de la monografía (`python servidor.py`).

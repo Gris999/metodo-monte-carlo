@@ -1,21 +1,94 @@
-/* Motor de respaldo en JavaScript para usar la app sin conexión con el servidor.
+/* Motor en JavaScript para usar la app sin el servidor en Python (por ejemplo, en
+ * GitHub Pages).
  *
- * Implementa el mismo estimador y las mismas medidas de error que el núcleo en Python,
- * pero con otro generador pseudoaleatorio (mulberry32), por lo que los números no
- * coinciden exactamente con los de Python para una misma semilla. Los resultados de la
- * monografía provienen siempre del núcleo en Python.
+ * Implementa el mismo estimador y las mismas medidas de error que el núcleo en Python, y
+ * el mismo generador pseudoaleatorio: numpy.random.default_rng(semilla), es decir,
+ * SeedSequence + PCG64 (XSL-RR 128/64) y random() = (x >> 11) · 2⁻⁵³. Con la misma
+ * semilla produce exactamente los mismos números que NumPy.
  */
 (function () {
   const Z95 = 1.959963984540054;
 
-  function mulberry32(seed) {
-    let a = seed >>> 0;
+  /* ----------------------------------------------- SeedSequence de NumPy (32 bits) */
+  const INIT_A = 0x43b0d7e5, MULT_A = 0x931e8875, INIT_B = 0x8b51f9dd, MULT_B = 0x58f38ded;
+  const MIX_MULT_L = 0xca01f9dd, MIX_MULT_R = 0x4973f715, POOL = 4;
+
+  function seedSequenceState(semilla, nWords32) {
+    let hc = INIT_A;
+    const hashmix = (v) => {
+      v = (v ^ hc) >>> 0;
+      hc = Math.imul(hc, MULT_A) >>> 0;
+      v = Math.imul(v, hc) >>> 0;
+      return (v ^ (v >>> 16)) >>> 0;
+    };
+    const mix = (x, y) => {
+      const r = (Math.imul(MIX_MULT_L, x) - Math.imul(MIX_MULT_R, y)) >>> 0;
+      return (r ^ (r >>> 16)) >>> 0;
+    };
+    const entropia = [semilla >>> 0];
+    const pool = [];
+    for (let i = 0; i < POOL; i++) pool[i] = hashmix(i < entropia.length ? entropia[i] : 0);
+    for (let s = 0; s < POOL; s++)
+      for (let d = 0; d < POOL; d++)
+        if (s !== d) pool[d] = mix(pool[d], hashmix(pool[s]));
+    let hb = INIT_B;
+    const estado = [];
+    for (let i = 0; i < nWords32; i++) {
+      let v = (pool[i % POOL] ^ hb) >>> 0;
+      hb = Math.imul(hb, MULT_B) >>> 0;
+      v = Math.imul(v, hb) >>> 0;
+      estado.push((v ^ (v >>> 16)) >>> 0);
+    }
+    return estado;
+  }
+
+  /* ----------------------------------------------- PCG64 con aritmética de 128 bits
+     Un número de 128 bits se guarda como 8 dígitos de 16 bits (el primero, el menos
+     significativo), para que todos los productos sean exactos en punto flotante. */
+  const MULT = aDigitos([0x2360ed05, 0x1fc65da4, 0x4385df64, 0x9fccf645]);
+
+  function aDigitos(w) { // w: 4 palabras de 32 bits, de la más a la menos significativa
+    const d = [];
+    for (let i = 3; i >= 0; i--) d.push(w[i] & 0xffff, w[i] >>> 16);
+    return d;
+  }
+  function mul(a, b) {
+    const r = [0, 0, 0, 0, 0, 0, 0, 0];
+    for (let i = 0; i < 8; i++) {
+      if (!a[i]) continue;
+      for (let j = 0; i + j < 8; j++) r[i + j] += a[i] * b[j];
+    }
+    let c = 0;
+    for (let k = 0; k < 8; k++) { const t = r[k] + c; r[k] = t % 65536; c = Math.floor(t / 65536); }
+    return r;
+  }
+  function sum(a, b) {
+    const r = []; let c = 0;
+    for (let k = 0; k < 8; k++) { const t = a[k] + b[k] + c; r[k] = t & 0xffff; c = t >>> 16; }
+    return r;
+  }
+
+  function pcg64(semilla) {
+    const w = seedSequenceState(semilla, 8); // 4 enteros de 64 bits, little endian
+    const u64 = (k) => [w[2 * k + 1], w[2 * k]]; // [alto, bajo]
+    const initstate = aDigitos([...u64(0), ...u64(1)]);
+    const initseq = aDigitos([...u64(2), ...u64(3)]);
+    const inc = sum(sum(initseq, initseq), [1, 0, 0, 0, 0, 0, 0, 0]); // (initseq << 1) | 1
+    let estado = [0, 0, 0, 0, 0, 0, 0, 0];
+    const paso = () => { estado = sum(mul(estado, MULT), inc); };
+    paso();
+    estado = sum(estado, initstate);
+    paso();
     return function () {
-      a = (a + 0x6d2b79f5) >>> 0;
-      let t = a;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      paso();
+      const e = estado;
+      // XSL-RR: (alto64 XOR bajo64) rotado a la derecha según los 6 bits superiores
+      let hi = (((e[7] << 16) | e[6]) ^ ((e[3] << 16) | e[2])) >>> 0;
+      let lo = (((e[5] << 16) | e[4]) ^ ((e[1] << 16) | e[0])) >>> 0;
+      let rot = e[7] >>> 10;
+      if (rot >= 32) { [hi, lo] = [lo, hi]; rot -= 32; }
+      if (rot) { const h = hi; hi = ((hi >>> rot) | (lo << (32 - rot))) >>> 0; lo = ((lo >>> rot) | (h << (32 - rot))) >>> 0; }
+      return (hi * 2097152 + (lo >>> 11)) / 9007199254740992; // (x >> 11) · 2⁻⁵³
     };
   }
 
@@ -124,7 +197,7 @@
     const c = armarCaso(p);
     const d = c.lim.length;
     const V = c.lim.reduce((acc, [a, b]) => acc * (b - a), 1);
-    const rnd = mulberry32(semilla);
+    const rnd = pcg64(semilla);
     const nGraf = Math.min(n, 200000);
     const idx = new Set();
     for (let i = 0; i < 400; i++) idx.add(Math.max(1, Math.round(Math.pow(nGraf, i / 399))));
@@ -182,7 +255,7 @@
   /* ----------------------------------------------- experimentos repetidos */
   function estimacionSimple(c, n, semilla) {
     const V = c.lim.reduce((acc, [a, b]) => acc * (b - a), 1);
-    const rnd = mulberry32(semilla);
+    const rnd = pcg64(semilla);
     let s = 0, s2 = 0;
     const t0 = performance.now();
     for (let i = 0; i < n; i++) {

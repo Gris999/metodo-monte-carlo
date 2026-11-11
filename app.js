@@ -451,7 +451,7 @@
     $("#expCallout").innerHTML = d.peores != null
       ? `Se hicieron <b>${int(total)}</b> estimaciones. En <b>${d.peores} de ${d.comparaciones}</b> comparaciones, la misma repetición tuvo <b>mayor</b> error al usar más puntos: aumentar N mejora en promedio, no en cada ejecución.`
       : `Se hicieron <b>${int(total)}</b> estimaciones. Sin valor exacto, la precisión se evalúa con el error estándar.`;
-    if (d.offline) $("#expCallout").innerHTML += "<br><small>Calculado en el navegador (motor JavaScript); los números de la monografía provienen del núcleo en Python.</small>";
+    if (d.offline) $("#expCallout").innerHTML += "<br><small>Calculado en el navegador con el mismo generador que NumPy (PCG64): mismas estimaciones que en Python.</small>";
     Charts.boxes($("#boxChart"), {
       boxes: d.cajas.map((b) => ({ ...b, label: etiqueta(b.n) })), color: C.accent, ref: d.exacto,
       xLabel: "Cantidad de puntos N", legend: d.exacto != null ? [{ label: "Valor exacto", color: C.ink, dash: "5 4" }] : null,
