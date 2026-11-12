@@ -112,11 +112,11 @@
     function step() {
       const k = n < 200 ? 2 : 8;
       for (let i = 0; i < k; i++) {
-        const x = Math.random(), y = Math.random(), ins = x * x + y * y <= 1;  // xi = random1, yi = random2 (cuadrado 1×1); CONDICIÓN de éxito: x² + y² ≤ 1 → cayó dentro del cuarto de círculo
-        n++; if (ins) inn++;  // cuenta el dardo; si cayó dentro, cuenta un éxito
+        const x = Math.random(), y = Math.random(), ins = x * x + y * y <= 1;  // ⑨ DI: «En la demo de los dardos: x e y son la posición al azar del dardo, y la condición x² + y² ≤ 1 pregunta si cayó dentro del círculo.»
+        n++; if (ins) inn++;  // ⑩ DI: «Aquí cuenta todos los dardos y, si cayó dentro, cuenta un éxito.»
         b.dot(x, y, ins, 3.4);
       }
-      $("#heroPi").textContent = nf(4 * inn / n, 4);  // π ≈ 4 · (éxitos / total), porque el cuarto de círculo tiene área π/4
+      $("#heroPi").textContent = nf(4 * inn / n, 4);  // ⑪ DI: «Los que cayeron dentro entre el total, por 4, da π, porque el cuarto de círculo tiene área π/4.»
       $("#heroN").textContent = int(n);
       if (n >= 2500) { n = 0; inn = 0; b.base(); }
       if (!reduce) requestAnimationFrame(step);
