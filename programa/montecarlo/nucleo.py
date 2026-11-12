@@ -41,7 +41,7 @@ class ResultadoMC:
 def validar_entradas(n: int, semilla: int) -> None:
     if isinstance(n, bool) or not isinstance(n, (int, np.integer)):
         raise TypeError("La cantidad de muestras debe ser un número entero.")
-    if not N_MIN <= n <= N_MAX:  # ① DI: «Primero el programa revisa los datos: si N es menor que 2 da error, porque con un solo punto no se puede calcular el error estándar.»
+    if not N_MIN <= n <= N_MAX:  # CONDICIÓN: ¿N está fuera del rango 2 … 10.000.000?
         raise ValueError(f"La cantidad de muestras debe estar entre {N_MIN} y {N_MAX:,}.")
     if isinstance(semilla, bool) or not isinstance(semilla, (int, np.integer)):
         raise TypeError("La semilla debe ser un número entero.")
@@ -51,22 +51,22 @@ def validar_entradas(n: int, semilla: int) -> None:
 
 def generar_muestras(caso: CasoPrueba, n: int, semilla: int) -> np.ndarray:
     """Devuelve una matriz n×d de puntos uniformes en la región del caso."""
-    rng = np.random.default_rng(semilla)  # ② DI: «Aquí entra la semilla: arranca el generador de números al azar. Con la misma semilla salen los mismos números, por eso podemos repetir el ejercicio.»
+    rng = np.random.default_rng(semilla)  # SEMILLA: prepara el generador de números al azar (PCG64 de NumPy); misma semilla → mismos números
     u = rng.random((n, caso.dimension))
     a = np.array([lim[0] for lim in caso.limites])
     b = np.array([lim[1] for lim in caso.limites])
-    return a + (b - a) * u  # ③ DI: «Aquí se eligen los puntos al azar: Xi = a + random por (b − a), así cada punto cae entre a y b.»
+    return a + (b - a) * u  # Xi = a + random · (b − a): estira cada número para que caiga entre a y b
 
 
 def estimar_integral(caso: CasoPrueba, n: int, semilla: int) -> ResultadoMC:
     validar_entradas(n, semilla)
     x = generar_muestras(caso, n, semilla)
-    y = caso.funcion(x)  # ④ DI: «Aquí se calcula la altura de la curva en cada punto, f(Xi).»
+    y = caso.funcion(x)  # Paso 2: medir la altura f(Xi) en cada punto
     if not np.all(np.isfinite(y)):
         raise ArithmeticError("La función produjo valores no finitos en la región.")
     v = caso.volumen
-    estimacion = v * float(np.mean(y))  # ⑤ DI: «Este es el método: el ancho (b − a) por el promedio de las alturas. Con x², 10 puntos y semilla 2026 da 0,2914.»
-    error_estandar = v * float(np.std(y, ddof=1)) / math.sqrt(n)  # ⑥ DI: «Aquí el error estándar: el ancho por la desviación s, dividido entre raíz de N. ddof=1 significa dividir entre N − 1. Da 0,0853.»
+    estimacion = v * float(np.mean(y))  # Paso 3 ⭐ Î = (b − a) · promedio de las alturas
+    error_estandar = v * float(np.std(y, ddof=1)) / math.sqrt(n)  # Paso 4 ⭐ EE = (b − a) · s / √N   (ddof=1 → divide entre N − 1)
     if caso.valor_exacto is None:
         error_absoluto = error_relativo = None
     else:
@@ -80,8 +80,8 @@ def estimar_integral(caso: CasoPrueba, n: int, semilla: int) -> ResultadoMC:
         error_absoluto=error_absoluto,
         error_relativo=error_relativo,
         error_estandar=error_estandar,
-        ic_inferior=estimacion - Z_95 * error_estandar,  # ⑦ DI: «Y el intervalo de confianza: el resultado menos 1,96 errores estándar…»
-        ic_superior=estimacion + Z_95 * error_estandar,  # ⑧ DI: «…y más 1,96 errores estándar. Da de 0,1243 a 0,4585, y el valor exacto 1/3 queda dentro.»  → luego abre app.js, línea 115
+        ic_inferior=estimacion - Z_95 * error_estandar,  # Paso 5 ⭐ límite inferior del intervalo: Î − 1,96 · EE
+        ic_superior=estimacion + Z_95 * error_estandar,  # límite superior del intervalo: Î + 1,96 · EE
         n=int(n),
         semilla=int(semilla),
     )
