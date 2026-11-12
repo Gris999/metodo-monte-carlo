@@ -322,8 +322,9 @@
       });
       return;
     }
-    const conv = d.convergencia.filter((p) => p.k >= 10 && p.est != null);
-    const tail = conv.filter((p) => p.k >= Math.min(50, r.n));
+    const kMin = r.n < 100 ? 2 : 10;  // con pocos puntos se grafica desde k = 2 para que se vea la línea
+    const conv = d.convergencia.filter((p) => p.k >= kMin && p.est != null);
+    const tail = r.n < 50 ? conv : conv.filter((p) => p.k >= 50);
     const lo = Math.min(...tail.map((p) => p.inf ?? p.est)), hi = Math.max(...tail.map((p) => p.sup ?? p.est));
     const yd = c.exacto != null ? [Math.min(lo, c.exacto), Math.max(hi, c.exacto)] : [lo, hi];
     const pad = (yd[1] - yd[0]) * 0.1 || 0.1;
@@ -333,7 +334,7 @@
     ];
     const leg = [{ label: "Resultado con k puntos", color: C.accent }, { label: "IC 95 %", color: C.accent, kind: "band" }];
     if (c.exacto != null) { series.push({ type: "hline", y: c.exacto, color: C.ink, dash: "5 4", width: 1.3 }); leg.push({ label: "Exacto", color: C.ink, dash: "5 4" }); }
-    Charts.plot($("#mainChart"), { xLog: true, xDomain: [10, Math.max(20, conv.length ? conv[conv.length - 1].k : 20)], yDomain: [yd[0] - pad, yd[1] + pad], xLabel: "Cantidad de puntos k", series, legend: leg });
+    Charts.plot($("#mainChart"), { xLog: true, xDomain: [kMin, Math.max(kMin * 2, conv.length ? conv[conv.length - 1].k : 20)], yDomain: [yd[0] - pad, yd[1] + pad], xLabel: "Cantidad de puntos k", series, legend: leg });
   }
 
   function mostrar(d) {
