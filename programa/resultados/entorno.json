@@ -1,0 +1,18 @@
+{
+  "fecha": "2026-10-28T23:12:30",
+  "python": "3.12.14",
+  "numpy": "2.5.4",
+  "pandas": "3.1.0",
+  "matplotlib": "3.11.2",
+  "sistema": "macOS-26.5.2-arm64-arm-64bit",
+  "procesador": "arm",
+  "generador": "numpy.random.default_rng (PCG64)",
+  "semilla_base": 2026,
+  "repeticiones": 30,
+  "tamanios": [
+    100,
+    1000,
+    10000,
+    100000
+  ]
+}

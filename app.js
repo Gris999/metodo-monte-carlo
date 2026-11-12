@@ -105,20 +105,20 @@
     return { base, dot };
   }
 
-  (function hero() {
-    const b = board($("#heroCanvas"));
-    let n = 0, inn = 0;
+  (function hero() {  // DEMO DE LOS DARDOS (método de acierto y fallo) para estimar π
+    const b = board($("#heroCanvas"));  // tablero donde se dibujan los dardos
+    let n = 0, inn = 0;  // n = dardos lanzados (total), inn = dardos que cayeron dentro (éxitos)
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    function step() {
-      const k = n < 200 ? 2 : 8;
+    function step() {  // lanza unos dardos en cada cuadro de la animación
+      const k = n < 200 ? 2 : 8;  // cuántos dardos por cuadro (pocos al inicio para que se vea)
       for (let i = 0; i < k; i++) {
-        const x = Math.random(), y = Math.random(), ins = x * x + y * y <= 1;
-        n++; if (ins) inn++;
-        b.dot(x, y, ins, 3.4);
+        const x = Math.random(), y = Math.random(), ins = x * x + y * y <= 1;  // xi = random1, yi = random2 (cuadrado 1×1); CONDICIÓN de éxito: x² + y² ≤ 1 → cayó dentro del cuarto de círculo
+        n++; if (ins) inn++;  // cuenta el dardo; si cayó dentro, cuenta un éxito
+        b.dot(x, y, ins, 3.4);  // dibuja el punto (violeta si cayó dentro, ámbar si cayó fuera)
       }
-      $("#heroPi").textContent = nf(4 * inn / n, 4);
-      $("#heroN").textContent = int(n);
-      if (n >= 2500) { n = 0; inn = 0; b.base(); }
+      $("#heroPi").textContent = nf(4 * inn / n, 4);  // π ≈ 4 · (éxitos / total), porque el cuarto de círculo tiene área π/4
+      $("#heroN").textContent = int(n);  // muestra cuántos dardos se lanzaron
+      if (n >= 2500) { n = 0; inn = 0; b.base(); }  // al llegar a 2.500 dardos reinicia la animación
       if (!reduce) requestAnimationFrame(step);
     }
     if (reduce) { for (let i = 0; i < 300; i++) step(); } else requestAnimationFrame(step);
